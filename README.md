@@ -1,41 +1,103 @@
-# Pydroid 3 YouTube downloader (Android)
+# PythonAnywhere YouTube downloader (web)
 
-Tento projekt je jednoduchý skript pro **Pydroid 3** v Androidu, který používá `yt-dlp`.
+Tahle verze je dělaná pro **PythonAnywhere + GitHub + git pull**.
 
-> Používej ho jen na obsah, na který máš právo (vlastní videa, veřejná licence, souhlas autora).
+## Co to umí
 
-## Co umí
+- web formulář (URL + video/audio + kvalita)
+- stažení přes `yt-dlp`
+- video do MP4, audio do MP3
+- soubory uloží na server do `downloads/`
+- rovnou je nabídne ke stažení v prohlížeči
 
-- stáhnout video (MP4)
-- stáhnout audio
-  - jako MP3 (pokud je dostupné `ffmpeg` + `ffprobe`)
-  - nebo "native" audio bez převodu (např. m4a/webm)
-- volba kvality videa
-- uložit soubory do složky v telefonu
+## Struktura
 
-## Instalace v Pydroid 3
+- `app.py` – Flask web aplikace
+- `requirements.txt` – závislosti
+- `downloads/` – cílová složka pro stažené soubory (vytvoří se automaticky)
 
-1. Otevři Pydroid 3.
-2. V terminálu spusť:
+## Nasazení na PythonAnywhere (GitHub -> git pull)
 
-```bash
-pip install yt-dlp
-```
+### 1) Připoj repo na PythonAnywhere
 
-3. Pro převod do MP3 potřebuješ i `ffmpeg` a `ffprobe`.
-   Pokud je nemáš, skript stáhne audio v původním formátu bez převodu.
-
-## Spuštění
+V Bash konzoli na PythonAnywhere:
 
 ```bash
-python ytb_offline.py
+git clone <TVUJ_GITHUB_REPO_URL>
+cd <NAZEV_REPA>
 ```
 
-## Poznámky
-
-- Některá videa mohou být omezená regionem, přihlášením nebo právy.
-- Pokud se mění YouTube API/chování, aktualizuj:
+Pro update později:
 
 ```bash
-pip install -U yt-dlp
+git pull
 ```
+
+### 2) Virtualenv + instalace
+
+```bash
+python3.10 -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install -r requirements.txt
+```
+
+### 3) ffmpeg na PythonAnywhere
+
+Většinou je `ffmpeg` dostupné systémově. Ověř:
+
+```bash
+ffmpeg -version
+ffprobe -version
+```
+
+Pokud by chybělo, audio MP3 převod nebude fungovat.
+
+### 4) Web app v PythonAnywhere
+
+1. V dashboardu vytvoř **New Web App** (Manual config, Python 3.10).
+2. Nastav **Source code** na složku s repem.
+3. Nastav **Virtualenv** na `.../<repo>/.venv`.
+4. Otevři WSGI soubor a dej tam:
+
+```python
+import sys
+path = '/home/<uzivatel>/<repo>'
+if path not in sys.path:
+    sys.path.append(path)
+
+from app import app as application
+```
+
+5. Klikni **Reload**.
+
+## Workflow, který jsi chtěl
+
+- upravíš kód lokálně
+- push na GitHub
+- na PythonAnywhere uděláš:
+
+```bash
+cd <repo>
+git pull
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+- v dashboardu klikneš **Reload**
+
+Hotovo, změny běží online.
+
+## Důležité limity
+
+- stahuj jen obsah, který smíš stahovat
+- velká videa mohou timeoutnout
+- úložiště na PythonAnywhere je omezené, průběžně maž staré soubory z `downloads/`
+
+## Rychlý lokální test
+
+```bash
+python app.py
+```
+
+Pak otevři `http://127.0.0.1:8000`.
