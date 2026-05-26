@@ -7,8 +7,10 @@ Tento projekt je jednoduchý skript pro **Pydroid 3** v Androidu, který použí
 ## Co umí
 
 - stáhnout video (MP4)
-- stáhnout audio (MP3)
-- volba kvality
+- stáhnout audio
+  - jako MP3 (pokud je dostupné `ffmpeg` + `ffprobe`)
+  - nebo "native" audio bez převodu (např. m4a/webm)
+- volba kvality videa
 - uložit soubory do složky v telefonu
 
 ## Instalace v Pydroid 3
@@ -20,7 +22,8 @@ Tento projekt je jednoduchý skript pro **Pydroid 3** v Androidu, který použí
 pip install yt-dlp
 ```
 
-3. Pokud chceš převod do MP3, je potřeba i `ffmpeg` dostupné v systému (v Pydroidu dle možností zařízení/pluginů).
+3. Pro převod do MP3 potřebuješ i `ffmpeg` a `ffprobe`.
+   Pokud je nemáš, skript stáhne audio v původním formátu bez převodu.
 
 ## Spuštění
 

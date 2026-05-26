@@ -2,6 +2,7 @@
 """Jednoduchý CLI downloader pro Pydroid 3 (Android)."""
 
 from pathlib import Path
+import shutil
 from typing import Dict, Any
 
 try:
@@ -18,7 +19,11 @@ def ask(prompt: str, default: str | None = None) -> str:
     return input(f"{prompt}: ").strip()
 
 
-def build_options(mode: str, out_dir: Path, quality: str) -> Dict[str, Any]:
+def has_ffmpeg_tools() -> bool:
+    return shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None
+
+
+def build_options(mode: str, out_dir: Path, quality: str, extract_mp3: bool) -> Dict[str, Any]:
     opts: Dict[str, Any] = {
         "outtmpl": str(out_dir / "%(title)s.%(ext)s"),
         "noplaylist": True,
@@ -27,7 +32,6 @@ def build_options(mode: str, out_dir: Path, quality: str) -> Dict[str, Any]:
     }
 
     if mode == "video":
-        # Kombinace kvality videa+audiа s fallbackem na MP4.
         if quality == "best":
             fmt = "bestvideo+bestaudio/best"
         else:
@@ -40,18 +44,15 @@ def build_options(mode: str, out_dir: Path, quality: str) -> Dict[str, Any]:
             }
         )
     else:
-        opts.update(
-            {
-                "format": "bestaudio/best",
-                "postprocessors": [
-                    {
-                        "key": "FFmpegExtractAudio",
-                        "preferredcodec": "mp3",
-                        "preferredquality": "192",
-                    }
-                ],
-            }
-        )
+        opts["format"] = "bestaudio/best"
+        if extract_mp3:
+            opts["postprocessors"] = [
+                {
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "mp3",
+                    "preferredquality": "192",
+                }
+            ]
 
     return opts
 
@@ -77,11 +78,24 @@ def main() -> None:
             print("Neplatná kvalita, použiji 'best'.")
             quality = "best"
 
+    extract_mp3 = False
+    if mode == "audio":
+        ffmpeg_ok = has_ffmpeg_tools()
+        if ffmpeg_ok:
+            choice = ask("Audio formát (mp3/native)", "mp3").lower()
+            if choice not in {"mp3", "native"}:
+                print("Neplatná volba, použiji 'mp3'.")
+                choice = "mp3"
+            extract_mp3 = choice == "mp3"
+        else:
+            print("ffmpeg/ffprobe nebyl nalezen.")
+            print("Stáhnu audio v původním formátu (např. m4a/webm) bez převodu do MP3.")
+
     default_path = "/storage/emulated/0/Download/yt_offline"
     out_dir = Path(ask("Cílová složka", default_path)).expanduser()
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    options = build_options(mode, out_dir, quality)
+    options = build_options(mode, out_dir, quality, extract_mp3)
 
     try:
         with YoutubeDL(options) as ydl:
@@ -89,7 +103,7 @@ def main() -> None:
         print(f"\nHotovo. Soubor je uložen v: {out_dir}")
     except Exception as exc:
         print(f"Chyba při stahování: {exc}")
-        print("Tip: aktualizuj yt-dlp a ověř, že máš funkční ffmpeg (pro audio/mp3).")
+        print("Tip: aktualizuj yt-dlp. Pokud chceš MP3, doinstaluj ffmpeg i ffprobe.")
 
 
 if __name__ == "__main__":
